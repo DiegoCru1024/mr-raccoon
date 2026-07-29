@@ -1,10 +1,11 @@
 const {SlashCommandBuilder} = require('discord.js');
 const {guildUserModel} = require("../models/guildUserSchema");
 const {GoogleGenerativeAI} = require("@google/generative-ai");
-const {response} = require("express");
+
+const MAX_CHAT_HISTORY = 1000;
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_KEY);
-const model = genAI.getGenerativeModel({model: "gemini-pro"});
+const model = genAI.getGenerativeModel({model: "gemini-1.5-flash"});
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -23,7 +24,7 @@ module.exports = {
             const msg = interaction.options.getString('message')
             const modelResponse = await sendMessage(msg, userData.chatHistory)
 
-            if (userData.chatHistory.size === 1000) {
+            if (userData.chatHistory.length >= MAX_CHAT_HISTORY) {
                 userData.chatHistory.splice(0, 2);
             }
 

@@ -24,50 +24,50 @@ const rest = new REST().setToken(process.env.TOKEN);
 
 (async () => {
     try {
-        const args = process.argv.slice(2)
-        console.log(args)
+        const args = process.argv.slice(2);
 
-        const isGlobal = args.includes('-global');
-        const isGuild = args.includes('-guild');
+        const deployGlobal = args.includes('-global');
+        const deployGuild = args.includes('-guild');
 
-        if (isGlobal) {
-            console.log('Started deleting guild commands.');
+        if (!deployGlobal && !deployGuild) {
+            console.log('Ningún objetivo especificado. Usa "-global" y/o "-guild".');
+            return;
+        }
 
-            const guildCommands = await rest.get(
+        if (deployGlobal) {
+            console.log('Eliminando comandos de guild existentes antes de publicar en global...');
+
+            const existingGuildCommands = await rest.get(
                 Routes.applicationGuildCommands(process.env.CLIENT, process.env.GUILD)
             );
 
-            // Obtienes los IDs de los comandos específicos del servidor
-            const guildCommandIds = guildCommands.map(command => command.id);
+            await Promise.all(existingGuildCommands.map(command =>
+                rest.delete(Routes.applicationGuildCommand(process.env.CLIENT, process.env.GUILD, command.id))
+            ));
 
-            await Promise.all(guildCommandIds.map(async id => {
-                await rest.delete(
-                    Routes.applicationGuildCommand(process.env.CLIENT, process.env.GUILD, id)
-                );
-            }));
-
-            console.log('Successfully deleted guild commands.');
-            console.log(`Started refreshing ${commands.length} application (/) commands globally.`);
+            console.log('Comandos de guild eliminados.');
+            console.log(`Publicando ${commands.length} comandos (/) globalmente...`);
 
             const data = await rest.put(
                 Routes.applicationCommands(process.env.CLIENT),
                 {body: commands},
             );
 
-            console.log(`Successfully reloaded ${data.length} application (/) commands globally.`);
+            console.log(`${data.length} comandos (/) publicados globalmente.`);
         }
 
-        if (isGuild) {
-            console.log(`Started refreshing ${commands.length} application (/) commands in the guild.`);
+        if (deployGuild) {
+            console.log(`Publicando ${commands.length} comandos (/) en el guild...`);
 
             const data = await rest.put(
                 Routes.applicationGuildCommands(process.env.CLIENT, process.env.GUILD),
                 {body: commands},
             );
 
-            console.log(`Successfully reloaded ${data.length} application (/) commands in the guild.`);
+            console.log(`${data.length} comandos (/) publicados en el guild.`);
         }
     } catch (error) {
         console.error(error);
+        process.exitCode = 1;
     }
 })();

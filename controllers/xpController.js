@@ -1,14 +1,15 @@
 const {guildUserModel} = require("../models/guildUserSchema")
+const logger = require("../utils/logger")
 
 async function xpController(guildId, userId) {
     try {
         const guildUserData = await guildUserModel.findOne({guildId: guildId, userId: userId})
         if (guildUserData) {
-            guildUserData.userXp += Math.floor(Math.random() * 100)
+            guildUserData.experience += Math.floor(Math.random() * 100)
             await guildUserData.save()
         }
     } catch (error) {
-        console.error('Error al actualizar el gremio:', error)
+        logger.error('Error al actualizar la experiencia del usuario:', error)
         throw error
     }
 }

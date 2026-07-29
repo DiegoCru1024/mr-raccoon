@@ -1,19 +1,31 @@
 const {Events} = require('discord.js')
 const {verifyUser} = require("../controllers/userController")
+const logger = require("../utils/logger")
 
 module.exports = {
     name: Events.InteractionCreate,
     async execute(interactionEvent) {
         if (!interactionEvent.isChatInputCommand()) return
-        await verifyUser(interactionEvent.client, interactionEvent.guild.id, interactionEvent.user.id)
 
         const command = interactionEvent.client.commands.get(interactionEvent.commandName)
 
+        if (!command) {
+            logger.warn(`Comando desconocido recibido: ${interactionEvent.commandName}`)
+            return
+        }
+
         try {
+            await verifyUser(interactionEvent.client, interactionEvent.guild.id, interactionEvent.user.id)
             await command.execute(interactionEvent)
         } catch (error) {
-            console.error(error)
-            await interactionEvent.reply({content: 'Error de ejecución.', ephemeral: true})
+            logger.error(`Error al ejecutar el comando "${interactionEvent.commandName}":`, error)
+
+            const errorReply = {content: 'Error de ejecución.', ephemeral: true}
+            if (interactionEvent.deferred || interactionEvent.replied) {
+                await interactionEvent.editReply(errorReply)
+            } else {
+                await interactionEvent.reply(errorReply)
+            }
         }
     }
 }

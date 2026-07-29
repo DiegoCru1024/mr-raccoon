@@ -4,7 +4,7 @@ module.exports = {
     data: new SlashCommandBuilder()
         .setName('clear')
         .setDescription('Elimina el número definido de mensajes.')
-        .addIntegerOption(option => option.setName('cantidad').setDescription('Cantidad de mensajes a eliminar').setRequired(true)),
+        .addIntegerOption(option => option.setName('cantidad').setDescription('Cantidad de mensajes a eliminar').setRequired(true).setMinValue(1).setMaxValue(100)),
     async execute(interaction) {
         if (!interaction.member.permissions.has(PermissionsBitField.Flags.Administrator)) {
             return interaction.reply('¡No tienes permisos para usar este comando!');

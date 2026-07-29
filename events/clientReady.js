@@ -1,9 +1,10 @@
 const {Events} = require('discord.js')
+const logger = require('../utils/logger')
 
 module.exports = {
     name: Events.ClientReady,
     once: true,
     async execute(client) {
-        console.log(`[LOG] ${client.user.username} esta operativo.`)
+        logger.info(`${client.user.username} esta operativo.`)
     },
 };

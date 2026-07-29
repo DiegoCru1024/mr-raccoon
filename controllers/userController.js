@@ -1,4 +1,5 @@
 const {guildUserModel} = require("../models/guildUserSchema");
+const logger = require("../utils/logger");
 
 async function verifyUser(botClient, guildId, userId) {
     try {
@@ -9,12 +10,10 @@ async function verifyUser(botClient, guildId, userId) {
             const guildMember = guild.members.cache.get(userId);
 
             if (guildMember) {
-                const joinDate = guildMember.joinedAt;
-
                 await new guildUserModel({
                     guildId: guildId,
                     userId: userId,
-                    joinDate: joinDate,
+                    joinDate: guildMember.joinedAt,
                     experience: 0,
                     currency: 0
                 }).save();
@@ -23,7 +22,7 @@ async function verifyUser(botClient, guildId, userId) {
             }
         }
     } catch (error) {
-        console.error('Error al verificar al usuario:', error);
+        logger.error('Error al verificar al usuario:', error);
         throw error;
     }
 }
