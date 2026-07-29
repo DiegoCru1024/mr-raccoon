@@ -5,6 +5,7 @@ const express = require('express')
 const {loadCommands} = require('./utils/commandLoader')
 const {loadEvents} = require('./utils/eventLoader')
 const databaseConnect = require('./utils/databaseDriver')
+const {startReminderScheduler} = require('./utils/scheduler')
 const logger = require('./utils/logger')
 
 const REQUIRED_ENV_VARS = ['TOKEN', 'DB_URL']
@@ -37,6 +38,7 @@ async function start() {
     loadCommands(discordClient)
     loadEvents(discordClient)
     await discordClient.login(process.env.TOKEN)
+    startReminderScheduler(discordClient)
 }
 
 start().catch(error => {
