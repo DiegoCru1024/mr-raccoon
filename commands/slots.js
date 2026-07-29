@@ -2,6 +2,8 @@ const {SlashCommandBuilder} = require('discord.js');
 const {addCurrency, subtractCurrency} = require("../controllers/economyController");
 
 const SYMBOLS = ['🍒', '🍋', '🔔', '⭐', '💎'];
+const TRIPLE_PAYOUT_RATIO = 5;
+const DOUBLE_PAYOUT_RATIO = 1.5;
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -17,19 +19,20 @@ module.exports = {
             const allMatch = spin[0] === spin[1] && spin[1] === spin[2];
             const twoMatch = !allMatch && (spin[0] === spin[1] || spin[1] === spin[2] || spin[0] === spin[2]);
 
+            await subtractCurrency(interaction.guild.id, interaction.user.id, apuesta);
+
             if (allMatch) {
-                const winnings = apuesta * 5;
+                const winnings = Math.floor(apuesta * TRIPLE_PAYOUT_RATIO);
                 await addCurrency(interaction.guild.id, interaction.user.id, winnings);
                 return interaction.reply(`${spinDisplay}\n¡Combinación perfecta! Ganaste ${winnings} Cosmic Coins.`);
             }
 
             if (twoMatch) {
-                const winnings = apuesta * 2;
+                const winnings = Math.floor(apuesta * DOUBLE_PAYOUT_RATIO);
                 await addCurrency(interaction.guild.id, interaction.user.id, winnings);
                 return interaction.reply(`${spinDisplay}\nDos símbolos coincidieron. Ganaste ${winnings} Cosmic Coins.`);
             }
 
-            await subtractCurrency(interaction.guild.id, interaction.user.id, apuesta);
             return interaction.reply(`${spinDisplay}\nSin suerte esta vez. Perdiste ${apuesta} Cosmic Coins.`);
         } catch (error) {
             if (error.message === 'Saldo insuficiente.' || error.message === 'El usuario no está registrado.') {

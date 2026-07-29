@@ -7,7 +7,8 @@ const guildUserSchema = new mongoose.Schema({
     experience: {type: Number, default: 0},
     currency: {type: Number, default: 0},
     lastDaily: {type: Date},
-    lastWork: {type: Date}
+    lastWork: {type: Date},
+    lastXpAt: {type: Date}
 })
 
 guildUserSchema.index({guildId: 1, userId: 1}, {unique: true})

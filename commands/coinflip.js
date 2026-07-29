@@ -1,6 +1,8 @@
 const {SlashCommandBuilder} = require('discord.js');
 const {addCurrency, subtractCurrency} = require("../controllers/economyController");
 
+const WIN_PAYOUT_RATIO = 0.9;
+
 module.exports = {
     data: new SlashCommandBuilder()
         .setName('coinflip')
@@ -20,8 +22,9 @@ module.exports = {
             const resultado = Math.random() < 0.5 ? 'cara' : 'cruz';
 
             if (resultado === lado) {
-                await addCurrency(interaction.guild.id, interaction.user.id, apuesta);
-                return interaction.reply(`La moneda cayó en **${resultado}**. ¡Ganaste ${apuesta} Cosmic Coins!`);
+                const winnings = Math.floor(apuesta * WIN_PAYOUT_RATIO);
+                await addCurrency(interaction.guild.id, interaction.user.id, winnings);
+                return interaction.reply(`La moneda cayó en **${resultado}**. ¡Ganaste ${winnings} Cosmic Coins!`);
             }
 
             await subtractCurrency(interaction.guild.id, interaction.user.id, apuesta);

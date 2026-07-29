@@ -36,6 +36,29 @@ describe('xpController', () => {
         await expect(xpController('guild-1', 'user-1')).resolves.toBeUndefined();
     });
 
+    it('does not award experience while the cooldown is active', async () => {
+        const save = jest.fn().mockResolvedValue(undefined);
+        const guildUserData = {experience: 10, lastXpAt: Date.now() - 1000, save};
+        guildUserModel.findOne.mockResolvedValue(guildUserData);
+
+        const result = await xpController('guild-1', 'user-1');
+
+        expect(result).toBeNull();
+        expect(guildUserData.experience).toBe(10);
+        expect(save).not.toHaveBeenCalled();
+    });
+
+    it('awards experience again once the cooldown has passed', async () => {
+        const save = jest.fn().mockResolvedValue(undefined);
+        const guildUserData = {experience: 10, lastXpAt: Date.now() - 60 * 1000, save};
+        guildUserModel.findOne.mockResolvedValue(guildUserData);
+
+        const result = await xpController('guild-1', 'user-1');
+
+        expect(result).toEqual({previousExperience: 10, experience: 60});
+        expect(save).toHaveBeenCalledTimes(1);
+    });
+
     it('propagates errors from the database', async () => {
         guildUserModel.findOne.mockRejectedValue(new Error('db down'));
 
