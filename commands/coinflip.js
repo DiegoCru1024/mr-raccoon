@@ -1,7 +1,9 @@
 const {SlashCommandBuilder} = require('discord.js');
 const {addCurrency, subtractCurrency} = require("../controllers/economyController");
 
-const WIN_PAYOUT_RATIO = 0.9;
+const EDGE_PROBABILITY = 0.001;
+const EDGE_PAYOUT_RATIO = 10;
+const WIN_PAYOUT_RATIO = 0.88;
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -19,6 +21,13 @@ module.exports = {
         try {
             const apuesta = interaction.options.getInteger('apuesta');
             const lado = interaction.options.getString('lado');
+
+            if (Math.random() < EDGE_PROBABILITY) {
+                const winnings = Math.floor(apuesta * EDGE_PAYOUT_RATIO);
+                await addCurrency(interaction.guild.id, interaction.user.id, winnings);
+                return interaction.reply(`¡La moneda cayó de canto! 🪙 Un resultado extremadamente raro. ¡Ganaste ${winnings} Cosmic Coins!`);
+            }
+
             const resultado = Math.random() < 0.5 ? 'cara' : 'cruz';
 
             if (resultado === lado) {
