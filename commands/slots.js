@@ -3,7 +3,7 @@ const {addCurrency, subtractCurrency} = require("../controllers/economyControlle
 const {t} = require('../utils/i18n');
 
 const SYMBOLS = ['🍒', '🍋', '🔔', '⭐', '💎'];
-const TRIPLE_PAYOUT_RATIO = 5;
+const TRIPLE_PAYOUT_RATIO = 7;
 const DOUBLE_PAYOUT_RATIO = 1.5;
 
 module.exports = {

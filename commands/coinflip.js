@@ -4,7 +4,7 @@ const {t} = require('../utils/i18n');
 
 const EDGE_PROBABILITY = 0.001;
 const EDGE_PAYOUT_RATIO = 10;
-const WIN_PAYOUT_RATIO = 0.88;
+const WIN_PAYOUT_RATIO = 1;
 
 module.exports = {
     data: new SlashCommandBuilder()
