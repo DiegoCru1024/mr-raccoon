@@ -31,8 +31,8 @@ function toTrack({title, url, durationInSec, requestedBy}) {
 }
 
 async function searchYoutube(query) {
-    const results = await play.search(query, {limit: 1, source: {youtube: 'video'}});
-    return results[0] ?? null;
+    const results = await play.search(query, {limit: 5, source: {youtube: 'video'}});
+    return results.find(result => result.url && result.type === 'video') ?? null;
 }
 
 async function resolveSpotifyTracksToYoutube(spotifyTracks, requestedBy) {
@@ -72,7 +72,7 @@ async function resolveQuery(query, requestedBy) {
     if (youtubeType === 'playlist') {
         const playlist = await play.playlist_info(query, {incomplete: true});
         const videos = (await playlist.all_videos()).slice(0, MAX_PLAYLIST_TRACKS);
-        const tracks = videos.map(video => toTrack({title: video.title, url: video.url, durationInSec: video.durationInSec, requestedBy}));
+        const tracks = videos.filter(video => video.url).map(video => toTrack({title: video.title, url: video.url, durationInSec: video.durationInSec, requestedBy}));
         return {isPlaylist: true, sourceTitle: playlist.title, tracks};
     }
 

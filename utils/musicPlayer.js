@@ -108,6 +108,11 @@ async function playNext(guildId) {
         return;
     }
 
+    if (!track.url) {
+        logger.warn(`Se omitió "${track.title}" por no tener una URL válida.`);
+        return playNext(guildId);
+    }
+
     clearIdleTimer(queue);
     queue.current = track;
 
