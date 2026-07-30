@@ -13,7 +13,7 @@ module.exports = {
             });
 
             if (!guildUserData) {
-                return interaction.reply('Todavía no estás registrado. Usá algún comando de economía primero.');
+                return interaction.reply('Todavía no estás registrado. Usa algún comando de economía primero.');
             }
 
             const walletEmbed = new EmbedBuilder()

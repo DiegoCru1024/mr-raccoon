@@ -5,7 +5,7 @@ const WORK_COOLDOWN = 2 * 60 * 60 * 1000;
 const WORK_MESSAGES = [
     'Trabajaste reciclando latas y ganaste',
     'Ayudaste a limpiar el bosque y ganaste',
-    'Hiciste unas changas en el pueblo y ganaste',
+    'Hiciste trabajos ocasionales en el pueblo y ganaste',
     'Encontraste monedas mientras revisabas la basura y ganaste'
 ];
 
