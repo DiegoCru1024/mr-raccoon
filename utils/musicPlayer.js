@@ -7,14 +7,22 @@ const {
     VoiceConnectionStatus,
     StreamType,
 } = require('@discordjs/voice');
-const play = require('play-dl');
+const {FFmpeg} = require('prism-media');
 const {getGuildConfig} = require('../controllers/configController');
 const {t} = require('./i18n');
 const logger = require('./logger');
 
 const IDLE_TIMEOUT_MS = 60_000;
-const MAX_TRACK_RETRIES = 1;
-const RATE_LIMIT_BACKOFF_MS = 5_000;
+const FFMPEG_ARGS = [
+    '-reconnect', '1',
+    '-reconnect_streamed', '1',
+    '-reconnect_delay_max', '5',
+    '-analyzeduration', '0',
+    '-loglevel', '0',
+    '-f', 's16le',
+    '-ar', '48000',
+    '-ac', '2',
+];
 
 const queues = new Map();
 
@@ -108,7 +116,7 @@ async function notifyChannel(queue, guildId, key, params) {
     }
 }
 
-async function playTrack(guildId, track, attempt = 0) {
+async function playTrack(guildId, track) {
     const queue = getQueue(guildId);
     if (!queue) return;
 
@@ -116,24 +124,12 @@ async function playTrack(guildId, track, attempt = 0) {
     queue.current = track;
 
     try {
-        const source = await play.stream(track.url);
-        const resource = createAudioResource(source.stream, {
-            inputType: source.type ?? StreamType.Arbitrary,
-        });
+        const transcoder = new FFmpeg({args: ['-i', track.url, ...FFMPEG_ARGS]});
+        const resource = createAudioResource(transcoder, {inputType: StreamType.Raw});
         queue.player.play(resource);
     } catch (error) {
-        const isRateLimited = /429/.test(error.message ?? '');
-
-        if (isRateLimited && attempt < MAX_TRACK_RETRIES) {
-            logger.warn(`Límite de solicitudes de YouTube alcanzado, reintentando "${track.title}" en ${RATE_LIMIT_BACKOFF_MS}ms...`);
-            setTimeout(() => {
-                playTrack(guildId, track, attempt + 1).catch(retryError => logger.error(`Error al reintentar "${track.title}":`, retryError));
-            }, RATE_LIMIT_BACKOFF_MS);
-            return;
-        }
-
         logger.error(`Error al reproducir "${track.title}":`, error);
-        await notifyChannel(queue, guildId, isRateLimited ? 'music.rateLimited' : 'music.trackFailed', {title: track.title});
+        await notifyChannel(queue, guildId, 'music.trackFailed', {title: track.title});
         await playNext(guildId);
     }
 }

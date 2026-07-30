@@ -1,108 +1,119 @@
-const play = require('play-dl');
-const logger = require('../utils/logger');
-
 const MAX_PLAYLIST_TRACKS = 100;
-const SEARCH_CHUNK_SIZE = 5;
+const SPOTIFY_PAGE_SIZE = 50;
+const SPOTIFY_URL_PATTERN = /open\.spotify\.com\/(?:intl-\w+\/)?(track|album|playlist)\/([a-zA-Z0-9]+)/;
 
-let spotifyReady = false;
+let cachedToken = null;
+let cachedTokenExpiresAt = 0;
 
-async function ensureSpotifyReady() {
-    if (spotifyReady) return true;
-    if (!process.env.SPOTIFY_CLIENT_ID || !process.env.SPOTIFY_CLIENT_SECRET) return false;
-
-    try {
-        await play.setToken({
-            spotify: {
-                client_id: process.env.SPOTIFY_CLIENT_ID,
-                client_secret: process.env.SPOTIFY_CLIENT_SECRET,
-                market: 'US',
-            },
-        });
-        spotifyReady = true;
-        return true;
-    } catch (error) {
-        logger.error('Error al inicializar la integración con Spotify:', error);
-        return false;
+function assertSpotifyCredentials() {
+    if (!process.env.SPOTIFY_CLIENT_ID || !process.env.SPOTIFY_CLIENT_SECRET) {
+        throw new Error('SPOTIFY_NOT_CONFIGURED');
     }
 }
 
-function toTrack({title, url, durationInSec, requestedBy}) {
-    return {title: title || 'Unknown', url, durationInSec: durationInSec ?? 0, requestedBy};
-}
+async function getAccessToken() {
+    assertSpotifyCredentials();
 
-async function searchYoutube(query) {
-    const results = await play.search(query, {limit: 5, source: {youtube: 'video'}});
-    return results.find(result => result.url && result.type === 'video') ?? null;
-}
-
-async function resolveSpotifyTracksToYoutube(spotifyTracks, requestedBy) {
-    const tracks = [];
-
-    for (let i = 0; i < spotifyTracks.length; i += SEARCH_CHUNK_SIZE) {
-        const chunk = spotifyTracks.slice(i, i + SEARCH_CHUNK_SIZE);
-        const results = await Promise.all(chunk.map(async spotifyTrack => {
-            const artistNames = spotifyTrack.artists?.map(artist => artist.name).join(' ') ?? '';
-            const query = `${spotifyTrack.name} ${artistNames}`.trim();
-
-            try {
-                const match = await searchYoutube(query);
-                if (!match) return null;
-                return toTrack({title: `${spotifyTrack.name} - ${artistNames}`, url: match.url, durationInSec: spotifyTrack.durationInSec, requestedBy});
-            } catch (error) {
-                logger.warn(`No se pudo resolver la canción de Spotify "${query}": ${error.message}`);
-                return null;
-            }
-        }));
-
-        tracks.push(...results.filter(Boolean));
+    if (cachedToken && Date.now() < cachedTokenExpiresAt) {
+        return cachedToken;
     }
 
-    return tracks;
+    const basicAuth = Buffer.from(`${process.env.SPOTIFY_CLIENT_ID}:${process.env.SPOTIFY_CLIENT_SECRET}`).toString('base64');
+    const response = await fetch('https://accounts.spotify.com/api/token', {
+        method: 'POST',
+        headers: {
+            'Authorization': `Basic ${basicAuth}`,
+            'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: 'grant_type=client_credentials',
+    });
+
+    if (!response.ok) {
+        throw new Error(`SPOTIFY_AUTH_FAILED: ${response.status}`);
+    }
+
+    const data = await response.json();
+    cachedToken = data.access_token;
+    cachedTokenExpiresAt = Date.now() + (data.expires_in - 60) * 1000;
+    return cachedToken;
+}
+
+async function spotifyFetch(path) {
+    const token = await getAccessToken();
+    const response = await fetch(`https://api.spotify.com/v1${path}`, {
+        headers: {Authorization: `Bearer ${token}`},
+    });
+
+    if (!response.ok) {
+        throw new Error(`SPOTIFY_REQUEST_FAILED: ${response.status}`);
+    }
+
+    return response.json();
+}
+
+function toTrack(spotifyTrack, requestedBy) {
+    if (!spotifyTrack || !spotifyTrack.preview_url) return null;
+
+    const artistNames = spotifyTrack.artists?.map(artist => artist.name).join(', ') ?? '';
+    return {
+        title: artistNames ? `${spotifyTrack.name} - ${artistNames}` : spotifyTrack.name,
+        url: spotifyTrack.preview_url,
+        durationInSec: Math.round((spotifyTrack.duration_ms ?? 30_000) / 1000),
+        requestedBy,
+    };
+}
+
+async function fetchAllPages(firstPath, extractItems) {
+    const items = [];
+    let path = firstPath;
+
+    while (path && items.length < MAX_PLAYLIST_TRACKS) {
+        const page = await spotifyFetch(path);
+        items.push(...extractItems(page));
+        path = page.next ? page.next.replace('https://api.spotify.com/v1', '') : null;
+    }
+
+    return items.slice(0, MAX_PLAYLIST_TRACKS);
 }
 
 async function resolveQuery(query, requestedBy) {
-    const youtubeType = play.yt_validate(query);
+    const spotifyMatch = query.match(SPOTIFY_URL_PATTERN);
 
-    if (youtubeType === 'video') {
-        const info = await play.video_basic_info(query);
-        const details = info.video_details;
-        return {isPlaylist: false, tracks: [toTrack({title: details.title, url: details.url, durationInSec: details.durationInSec, requestedBy})]};
-    }
+    if (spotifyMatch) {
+        const [, type, id] = spotifyMatch;
 
-    if (youtubeType === 'playlist') {
-        const playlist = await play.playlist_info(query, {incomplete: true});
-        const videos = (await playlist.all_videos()).slice(0, MAX_PLAYLIST_TRACKS);
-        const tracks = videos.filter(video => video.url).map(video => toTrack({title: video.title, url: video.url, durationInSec: video.durationInSec, requestedBy}));
-        return {isPlaylist: true, sourceTitle: playlist.title, tracks};
-    }
-
-    const spotifyType = play.sp_validate(query);
-
-    if (spotifyType) {
-        const ready = await ensureSpotifyReady();
-        if (!ready) {
-            const error = new Error('SPOTIFY_NOT_CONFIGURED');
-            throw error;
+        if (type === 'track') {
+            const track = await spotifyFetch(`/tracks/${id}`);
+            const resolved = toTrack(track, requestedBy);
+            return {isPlaylist: false, tracks: resolved ? [resolved] : []};
         }
 
-        const spotifyData = await play.spotify(query);
-
-        if (spotifyType === 'track') {
-            const tracks = await resolveSpotifyTracksToYoutube([spotifyData], requestedBy);
-            return {isPlaylist: false, tracks};
+        if (type === 'playlist') {
+            const playlistInfo = await spotifyFetch(`/playlists/${id}?fields=name`);
+            const rawItems = await fetchAllPages(
+                `/playlists/${id}/tracks?limit=${SPOTIFY_PAGE_SIZE}`,
+                page => page.items.map(item => item.track),
+            );
+            const tracks = rawItems.map(item => toTrack(item, requestedBy)).filter(Boolean);
+            return {isPlaylist: true, sourceTitle: playlistInfo.name, tracks, skippedCount: rawItems.length - tracks.length};
         }
 
-        const spotifyTracks = (await spotifyData.all_tracks()).slice(0, MAX_PLAYLIST_TRACKS);
-        const tracks = await resolveSpotifyTracksToYoutube(spotifyTracks, requestedBy);
-        return {isPlaylist: true, sourceTitle: spotifyData.name, tracks};
+        const albumInfo = await spotifyFetch(`/albums/${id}?fields=name`);
+        const rawItems = await fetchAllPages(
+            `/albums/${id}/tracks?limit=${SPOTIFY_PAGE_SIZE}`,
+            page => page.items,
+        );
+        const tracks = rawItems.map(item => toTrack(item, requestedBy)).filter(Boolean);
+        return {isPlaylist: true, sourceTitle: albumInfo.name, tracks, skippedCount: rawItems.length - tracks.length};
     }
 
-    const match = await searchYoutube(query);
+    const searchResult = await spotifyFetch(`/search?q=${encodeURIComponent(query)}&type=track&limit=5`);
+    const match = searchResult.tracks?.items?.find(item => item.preview_url);
     if (!match) {
         throw new Error('NO_RESULTS');
     }
 
-    return {isPlaylist: false, tracks: [toTrack({title: match.title, url: match.url, durationInSec: match.durationInSec, requestedBy})]};
+    return {isPlaylist: false, tracks: [toTrack(match, requestedBy)]};
 }
 
 module.exports = {resolveQuery};

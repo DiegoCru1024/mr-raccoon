@@ -6,7 +6,6 @@ const {loadCommands} = require('./utils/commandLoader')
 const {loadEvents} = require('./utils/eventLoader')
 const databaseConnect = require('./utils/databaseDriver')
 const {startReminderScheduler} = require('./utils/scheduler')
-const {initPlayDlAuth} = require('./utils/playDlAuth')
 const logger = require('./utils/logger')
 
 const REQUIRED_ENV_VARS = ['TOKEN', 'DB_URL']
@@ -37,7 +36,6 @@ const discordClient = new Client({
 
 async function start() {
     await databaseConnect()
-    await initPlayDlAuth()
     loadCommands(discordClient)
     loadEvents(discordClient)
     await discordClient.login(process.env.TOKEN)

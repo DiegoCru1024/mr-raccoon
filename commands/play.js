@@ -6,9 +6,9 @@ const {t} = require('../utils/i18n');
 module.exports = {
     data: new SlashCommandBuilder()
         .setName('play')
-        .setDescription('Reproduce una canción o playlist de YouTube o Spotify en el canal de voz.')
+        .setDescription('Reproduce el preview de 30s de una canción, álbum o playlist de Spotify en el canal de voz.')
         .addStringOption(option => option.setName('busqueda')
-            .setDescription('Link de YouTube/Spotify, o término de búsqueda')
+            .setDescription('Link de Spotify, o término de búsqueda')
             .setRequired(true)),
     async execute(interaction) {
         const voiceChannel = interaction.member.voice.channel;
@@ -31,7 +31,7 @@ module.exports = {
 
         try {
             const query = interaction.options.getString('busqueda');
-            const {tracks, isPlaylist, sourceTitle} = await resolveQuery(query, interaction.user.id);
+            const {tracks, isPlaylist, sourceTitle, skippedCount} = await resolveQuery(query, interaction.user.id);
 
             if (tracks.length === 0) {
                 return interaction.editReply(t(interaction.appLocale, 'music.noResults'));
@@ -42,7 +42,9 @@ module.exports = {
             enqueue(queue, tracks);
 
             if (isPlaylist) {
-                return interaction.editReply(t(interaction.appLocale, 'music.playlistAdded', {title: sourceTitle, count: tracks.length}));
+                return interaction.editReply(skippedCount > 0
+                    ? t(interaction.appLocale, 'music.playlistAddedWithSkipped', {title: sourceTitle, count: tracks.length, skipped: skippedCount})
+                    : t(interaction.appLocale, 'music.playlistAdded', {title: sourceTitle, count: tracks.length}));
             }
 
             if (wasIdle) {
