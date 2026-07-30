@@ -181,5 +181,7 @@ module.exports = {
         nowPlayingTitle: 'Reproduciendo ahora',
         duration: 'Duración',
         requestedBy: 'Solicitado por',
+        rateLimited: '⚠️ YouTube está limitando las solicitudes en este momento. Se omitió **{title}**.',
+        trackFailed: '⚠️ No se pudo reproducir **{title}**, se omitió.',
     },
 }

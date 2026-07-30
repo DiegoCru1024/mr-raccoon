@@ -8,9 +8,13 @@ const {
     StreamType,
 } = require('@discordjs/voice');
 const play = require('play-dl');
+const {getGuildConfig} = require('../controllers/configController');
+const {t} = require('./i18n');
 const logger = require('./logger');
 
 const IDLE_TIMEOUT_MS = 60_000;
+const MAX_TRACK_RETRIES = 1;
+const RATE_LIMIT_BACKOFF_MS = 5_000;
 
 const queues = new Map();
 
@@ -51,13 +55,13 @@ function createQueue(guild, voiceChannel, textChannel) {
 
     player.on(AudioPlayerStatus.Idle, () => {
         queue.current = null;
-        playNext(guild.id);
+        playNext(guild.id).catch(error => logger.error(`Error al avanzar la cola del guild ${guild.id}:`, error));
     });
 
     player.on('error', error => {
         logger.error(`Error de reproducción en el guild ${guild.id}:`, error);
         queue.current = null;
-        playNext(guild.id);
+        playNext(guild.id).catch(nextError => logger.error(`Error al avanzar la cola del guild ${guild.id}:`, nextError));
     });
 
     queues.set(guild.id, queue);
@@ -93,6 +97,47 @@ function destroyQueue(guildId) {
     queues.delete(guildId);
 }
 
+async function notifyChannel(queue, guildId, key, params) {
+    if (!queue.textChannel) return;
+
+    try {
+        const config = await getGuildConfig(guildId);
+        await queue.textChannel.send(t(config.locale, key, params));
+    } catch (error) {
+        logger.warn(`No se pudo notificar al canal de texto del guild ${guildId}: ${error.message}`);
+    }
+}
+
+async function playTrack(guildId, track, attempt = 0) {
+    const queue = getQueue(guildId);
+    if (!queue) return;
+
+    clearIdleTimer(queue);
+    queue.current = track;
+
+    try {
+        const source = await play.stream(track.url);
+        const resource = createAudioResource(source.stream, {
+            inputType: source.type ?? StreamType.Arbitrary,
+        });
+        queue.player.play(resource);
+    } catch (error) {
+        const isRateLimited = /429/.test(error.message ?? '');
+
+        if (isRateLimited && attempt < MAX_TRACK_RETRIES) {
+            logger.warn(`Límite de solicitudes de YouTube alcanzado, reintentando "${track.title}" en ${RATE_LIMIT_BACKOFF_MS}ms...`);
+            setTimeout(() => {
+                playTrack(guildId, track, attempt + 1).catch(retryError => logger.error(`Error al reintentar "${track.title}":`, retryError));
+            }, RATE_LIMIT_BACKOFF_MS);
+            return;
+        }
+
+        logger.error(`Error al reproducir "${track.title}":`, error);
+        await notifyChannel(queue, guildId, isRateLimited ? 'music.rateLimited' : 'music.trackFailed', {title: track.title});
+        await playNext(guildId);
+    }
+}
+
 async function playNext(guildId) {
     const queue = getQueue(guildId);
     if (!queue) return;
@@ -113,26 +158,14 @@ async function playNext(guildId) {
         return playNext(guildId);
     }
 
-    clearIdleTimer(queue);
-    queue.current = track;
-
-    try {
-        const source = await play.stream(track.url);
-        const resource = createAudioResource(source.stream, {
-            inputType: source.type ?? StreamType.Arbitrary,
-            inputArgs: ['-analyzeduration', '0'],
-        });
-        queue.player.play(resource);
-    } catch (error) {
-        logger.error(`Error al reproducir "${track.title}":`, error);
-        playNext(guildId);
-    }
+    return playTrack(guildId, track);
 }
 
 function enqueue(queue, tracks) {
     queue.tracks.push(...tracks);
     if (!queue.current) {
-        playNext(queue.connection.joinConfig.guildId);
+        const guildId = queue.connection.joinConfig.guildId;
+        playNext(guildId).catch(error => logger.error(`Error al iniciar la reproducción en el guild ${guildId}:`, error));
     }
 }
 

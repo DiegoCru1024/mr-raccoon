@@ -181,5 +181,7 @@ module.exports = {
         nowPlayingTitle: 'Now playing',
         duration: 'Duration',
         requestedBy: 'Requested by',
+        rateLimited: '⚠️ YouTube is rate-limiting requests right now. Skipping **{title}**.',
+        trackFailed: '⚠️ Could not play **{title}**, skipping it.',
     },
 }
