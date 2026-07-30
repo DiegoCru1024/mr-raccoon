@@ -5,7 +5,7 @@ async function addCurrency(guildId, userId, amount) {
     try {
         const guildUserData = await guildUserModel.findOne({guildId, userId})
         if (!guildUserData) {
-            throw new Error('El usuario no está registrado.')
+            throw new Error('NOT_REGISTERED')
         }
 
         guildUserData.currency += amount
@@ -21,11 +21,11 @@ async function subtractCurrency(guildId, userId, amount) {
     try {
         const guildUserData = await guildUserModel.findOne({guildId, userId})
         if (!guildUserData) {
-            throw new Error('El usuario no está registrado.')
+            throw new Error('NOT_REGISTERED')
         }
 
         if (guildUserData.currency < amount) {
-            throw new Error('Saldo insuficiente.')
+            throw new Error('INSUFFICIENT_FUNDS')
         }
 
         guildUserData.currency -= amount

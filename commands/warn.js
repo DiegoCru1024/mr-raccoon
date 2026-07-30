@@ -1,5 +1,6 @@
 const {SlashCommandBuilder, PermissionFlagsBits} = require('discord.js');
 const {createCase} = require('../controllers/moderationController');
+const {t} = require('../utils/i18n');
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -15,10 +16,10 @@ module.exports = {
 
             await createCase(interaction.client, interaction.guild.id, targetUser.id, interaction.user.id, 'warn', reason);
 
-            return interaction.reply(`${targetUser} ha sido advertido. Razón: ${reason}`);
+            return interaction.reply(t(interaction.appLocale, 'warn.success', {user: `${targetUser}`, reason}));
         } catch (error) {
             console.error('Error al procesar el comando "warn":', error);
-            return interaction.reply('Ocurrió un error al procesar el comando.');
+            return interaction.reply(t(interaction.appLocale, 'common.genericError'));
         }
     },
 };

@@ -7,6 +7,7 @@ const levelRoleSchema = new mongoose.Schema({
 
 const guildConfigSchema = new mongoose.Schema({
     guildId: {type: String, required: true, unique: true},
+    locale: {type: String, enum: ['en', 'es']},
     welcome: {
         enabled: {type: Boolean},
         channelId: {type: String},

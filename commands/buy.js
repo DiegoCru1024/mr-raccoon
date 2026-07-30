@@ -1,5 +1,6 @@
 const {SlashCommandBuilder} = require('discord.js');
 const {buyItem} = require("../controllers/shopController");
+const {t} = require('../utils/i18n');
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -11,14 +12,21 @@ module.exports = {
             const itemId = interaction.options.getString('id');
             const item = await buyItem(interaction.guild.id, interaction.user.id, itemId, interaction.member);
 
-            return interaction.reply(`Compraste **${item.name}** por ${item.price} Cosmic Coins.`);
+            return interaction.reply(t(interaction.appLocale, 'buy.success', {name: item.name, price: item.price}));
         } catch (error) {
-            if (['El artículo no existe en la tienda de este servidor.', 'Ya tienes ese artículo.', 'Saldo insuficiente.', 'El usuario no está registrado.'].includes(error.message)) {
-                return interaction.reply(error.message);
+            const errorKeys = {
+                ITEM_NOT_FOUND: 'buy.itemNotFound',
+                ALREADY_OWNED: 'buy.alreadyOwned',
+                INSUFFICIENT_FUNDS: 'common.insufficientFunds',
+                NOT_REGISTERED: 'common.notRegistered',
+            };
+
+            if (errorKeys[error.message]) {
+                return interaction.reply(t(interaction.appLocale, errorKeys[error.message]));
             }
 
             console.error('Error al procesar el comando "buy":', error);
-            return interaction.reply('Ocurrió un error al procesar el comando.');
+            return interaction.reply(t(interaction.appLocale, 'common.genericError'));
         }
     },
 };

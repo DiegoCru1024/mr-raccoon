@@ -1,6 +1,7 @@
 const {EmbedBuilder} = require('discord.js')
 const {moderationCaseModel} = require("../models/moderationCaseSchema")
 const {getGuildConfig} = require("./configController")
+const {t} = require('../utils/i18n')
 const logger = require("../utils/logger")
 
 async function logModerationCase(client, guildId, moderationCase) {
@@ -16,11 +17,11 @@ async function logModerationCase(client, guildId, moderationCase) {
 
         const logEmbed = new EmbedBuilder()
             .setColor(0xc80000)
-            .setTitle(`Caso de moderación: ${moderationCase.type.toUpperCase()}`)
+            .setTitle(t(config.locale, 'moderation.logTitle', {type: moderationCase.type.toUpperCase()}))
             .addFields(
-                {name: 'Usuario', value: `<@${moderationCase.userId}>`, inline: true},
-                {name: 'Moderador', value: `<@${moderationCase.moderatorId}>`, inline: true},
-                {name: 'Razón', value: moderationCase.reason}
+                {name: t(config.locale, 'moderation.user'), value: `<@${moderationCase.userId}>`, inline: true},
+                {name: t(config.locale, 'moderation.moderator'), value: `<@${moderationCase.moderatorId}>`, inline: true},
+                {name: t(config.locale, 'moderation.reason'), value: moderationCase.reason}
             )
             .setTimestamp(moderationCase.createdAt)
 

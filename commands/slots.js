@@ -1,5 +1,6 @@
 const {SlashCommandBuilder} = require('discord.js');
 const {addCurrency, subtractCurrency} = require("../controllers/economyController");
+const {t} = require('../utils/i18n');
 
 const SYMBOLS = ['🍒', '🍋', '🔔', '⭐', '💎'];
 const TRIPLE_PAYOUT_RATIO = 5;
@@ -24,23 +25,26 @@ module.exports = {
             if (allMatch) {
                 const winnings = Math.floor(apuesta * TRIPLE_PAYOUT_RATIO);
                 await addCurrency(interaction.guild.id, interaction.user.id, winnings);
-                return interaction.reply(`${spinDisplay}\n¡Combinación perfecta! Ganaste ${winnings} Cosmic Coins.`);
+                return interaction.reply(t(interaction.appLocale, 'slots.allMatch', {spin: spinDisplay, amount: winnings}));
             }
 
             if (twoMatch) {
                 const winnings = Math.floor(apuesta * DOUBLE_PAYOUT_RATIO);
                 await addCurrency(interaction.guild.id, interaction.user.id, winnings);
-                return interaction.reply(`${spinDisplay}\nDos símbolos coincidieron. Ganaste ${winnings} Cosmic Coins.`);
+                return interaction.reply(t(interaction.appLocale, 'slots.twoMatch', {spin: spinDisplay, amount: winnings}));
             }
 
-            return interaction.reply(`${spinDisplay}\nSin suerte esta vez. Perdiste ${apuesta} Cosmic Coins.`);
+            return interaction.reply(t(interaction.appLocale, 'slots.noMatch', {spin: spinDisplay, amount: apuesta}));
         } catch (error) {
-            if (error.message === 'Saldo insuficiente.' || error.message === 'El usuario no está registrado.') {
-                return interaction.reply(error.message);
+            if (error.message === 'INSUFFICIENT_FUNDS') {
+                return interaction.reply(t(interaction.appLocale, 'common.insufficientFunds'));
+            }
+            if (error.message === 'NOT_REGISTERED') {
+                return interaction.reply(t(interaction.appLocale, 'common.notRegistered'));
             }
 
             console.error('Error al procesar el comando "slots":', error);
-            return interaction.reply('Ocurrió un error al procesar el comando.');
+            return interaction.reply(t(interaction.appLocale, 'common.genericError'));
         }
     },
 };

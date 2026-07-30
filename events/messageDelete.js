@@ -1,5 +1,6 @@
 const {Events, EmbedBuilder} = require('discord.js')
 const {getGuildConfig} = require("../controllers/configController")
+const {t} = require('../utils/i18n')
 const logger = require("../utils/logger")
 
 module.exports = {
@@ -16,11 +17,11 @@ module.exports = {
 
             const logEmbed = new EmbedBuilder()
                 .setColor(0xc86400)
-                .setTitle('Mensaje eliminado')
+                .setTitle(t(config.locale, 'messageLog.deletedTitle'))
                 .addFields(
-                    {name: 'Autor', value: message.author ? `<@${message.author.id}>` : 'Desconocido', inline: true},
-                    {name: 'Canal', value: `${message.channel}`, inline: true},
-                    {name: 'Contenido', value: message.content || '*Sin contenido de texto*'}
+                    {name: t(config.locale, 'messageLog.author'), value: message.author ? `<@${message.author.id}>` : t(config.locale, 'common.unknown'), inline: true},
+                    {name: t(config.locale, 'messageLog.channel'), value: `${message.channel}`, inline: true},
+                    {name: t(config.locale, 'messageLog.content'), value: message.content || t(config.locale, 'common.noTextContent')}
                 )
                 .setTimestamp()
 

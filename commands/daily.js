@@ -1,5 +1,6 @@
 const {SlashCommandBuilder} = require('discord.js');
 const {guildUserModel} = require("../models/guildUserSchema");
+const {t} = require('../utils/i18n');
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -30,17 +31,17 @@ module.exports = {
                     userData.currency += currencyReward;
                     userData.lastDaily = Date.now();
                     await userData.save();
-                    return interaction.reply(`¡Recompensa diaria recibida! Has ganado ${currencyReward} Cosmic Coins.`);
+                    return interaction.reply(t(interaction.appLocale, 'daily.received', {amount: currencyReward}));
                 }
             } else {
                 const remainingTime = dailyRange - elapsedTime;
                 const remainingHours = Math.floor(remainingTime / (60 * 60 * 1000));
                 const remainingMinutes = Math.floor((remainingTime % (60 * 60 * 1000)) / (60 * 1000));
-                return interaction.reply(`¡Ya has recibido tu recompensa diaria! Vuelve en ${remainingHours} horas y ${remainingMinutes} minutos.`);
+                return interaction.reply(t(interaction.appLocale, 'daily.cooldown', {hours: remainingHours, minutes: remainingMinutes}));
             }
         } catch (error) {
             console.error('Error al procesar el comando "daily":', error);
-            return interaction.reply('Ocurrió un error al procesar el comando.');
+            return interaction.reply(t(interaction.appLocale, 'common.genericError'));
         }
     },
 };

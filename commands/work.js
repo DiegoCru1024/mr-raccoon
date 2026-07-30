@@ -1,13 +1,8 @@
 const {SlashCommandBuilder} = require('discord.js');
 const {guildUserModel} = require("../models/guildUserSchema");
+const {t} = require('../utils/i18n');
 
 const WORK_COOLDOWN = 2 * 60 * 60 * 1000;
-const WORK_MESSAGES = [
-    'Trabajaste reciclando latas y ganaste',
-    'Ayudaste a limpiar el bosque y ganaste',
-    'Hiciste trabajos ocasionales en el pueblo y ganaste',
-    'Encontraste monedas mientras revisabas la basura y ganaste'
-];
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -23,20 +18,21 @@ module.exports = {
                 const remainingTime = WORK_COOLDOWN - elapsedTime;
                 const remainingHours = Math.floor(remainingTime / (60 * 60 * 1000));
                 const remainingMinutes = Math.floor((remainingTime % (60 * 60 * 1000)) / (60 * 1000));
-                return interaction.reply(`Ya trabajaste recientemente. Vuelve en ${remainingHours} horas y ${remainingMinutes} minutos.`);
+                return interaction.reply(t(interaction.appLocale, 'work.cooldown', {hours: remainingHours, minutes: remainingMinutes}));
             }
 
             const currencyReward = Math.floor(Math.random() * (100 - 30 + 1)) + 30;
-            const message = WORK_MESSAGES[Math.floor(Math.random() * WORK_MESSAGES.length)];
+            const workMessages = t(interaction.appLocale, 'work.messages');
+            const message = workMessages[Math.floor(Math.random() * workMessages.length)];
 
             userData.currency += currencyReward;
             userData.lastWork = Date.now();
             await userData.save();
 
-            return interaction.reply(`${message} ${currencyReward} Cosmic Coins.`);
+            return interaction.reply(t(interaction.appLocale, 'work.result', {message, amount: currencyReward}));
         } catch (error) {
             console.error('Error al procesar el comando "work":', error);
-            return interaction.reply('Ocurrió un error al procesar el comando.');
+            return interaction.reply(t(interaction.appLocale, 'common.genericError'));
         }
     },
 };

@@ -1,4 +1,5 @@
 const {SlashCommandBuilder, EmbedBuilder} = require('discord.js');
+const {t} = require('../utils/i18n');
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -13,18 +14,18 @@ module.exports = {
                 .setTitle(guild.name)
                 .setThumbnail(guild.iconURL())
                 .addFields(
-                    {name: 'Dueño', value: `<@${guild.ownerId}>`, inline: true},
-                    {name: 'Miembros', value: `${guild.memberCount}`, inline: true},
-                    {name: 'Boosts', value: `${guild.premiumSubscriptionCount ?? 0}`, inline: true},
-                    {name: 'Canales', value: `${guild.channels.cache.size}`, inline: true},
-                    {name: 'Roles', value: `${guild.roles.cache.size}`, inline: true},
-                    {name: 'Creado', value: `<t:${Math.floor(guild.createdTimestamp / 1000)}:F>`, inline: true}
+                    {name: t(interaction.appLocale, 'serverinfo.owner'), value: `<@${guild.ownerId}>`, inline: true},
+                    {name: t(interaction.appLocale, 'serverinfo.members'), value: `${guild.memberCount}`, inline: true},
+                    {name: t(interaction.appLocale, 'serverinfo.boosts'), value: `${guild.premiumSubscriptionCount ?? 0}`, inline: true},
+                    {name: t(interaction.appLocale, 'serverinfo.channels'), value: `${guild.channels.cache.size}`, inline: true},
+                    {name: t(interaction.appLocale, 'serverinfo.roles'), value: `${guild.roles.cache.size}`, inline: true},
+                    {name: t(interaction.appLocale, 'serverinfo.created'), value: `<t:${Math.floor(guild.createdTimestamp / 1000)}:F>`, inline: true}
                 );
 
             return interaction.reply({embeds: [serverinfoEmbed]});
         } catch (error) {
             console.error('Error al procesar el comando "serverinfo":', error);
-            return interaction.reply('Ocurrió un error al procesar el comando.');
+            return interaction.reply(t(interaction.appLocale, 'common.genericError'));
         }
     },
 };

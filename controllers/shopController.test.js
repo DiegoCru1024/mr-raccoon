@@ -49,7 +49,7 @@ describe('shopController', () => {
         it('throws when the item does not exist', async () => {
             shopItemModel.findOneAndDelete.mockResolvedValue(null);
 
-            await expect(removeItem('g1', 'i1')).rejects.toThrow('El artículo no existe en la tienda de este servidor.');
+            await expect(removeItem('g1', 'i1')).rejects.toThrow('ITEM_NOT_FOUND');
         });
     });
 
@@ -61,13 +61,13 @@ describe('shopController', () => {
         it('throws when the item does not exist', async () => {
             shopItemModel.findOne.mockResolvedValue(null);
 
-            await expect(buyItem('g1', 'u1', 'i1', fakeMember())).rejects.toThrow('El artículo no existe en la tienda de este servidor.');
+            await expect(buyItem('g1', 'u1', 'i1', fakeMember())).rejects.toThrow('ITEM_NOT_FOUND');
         });
 
         it('throws when the member already has the role', async () => {
             shopItemModel.findOne.mockResolvedValue({roleId: 'role1', price: 100});
 
-            await expect(buyItem('g1', 'u1', 'i1', fakeMember(true))).rejects.toThrow('Ya tienes ese artículo.');
+            await expect(buyItem('g1', 'u1', 'i1', fakeMember(true))).rejects.toThrow('ALREADY_OWNED');
         });
 
         it('subtracts currency and grants the role', async () => {

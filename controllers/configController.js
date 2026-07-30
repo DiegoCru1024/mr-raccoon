@@ -1,11 +1,13 @@
 const {guildConfigModel} = require("../models/guildConfigSchema")
 const {DEFAULT_GUILD_CONFIG} = require("../utils/defaultGuildConfig")
+const {mapDiscordLocale} = require("../utils/i18n")
 const logger = require("../utils/logger")
 
 function mergeWithDefaults(guildConfigDoc) {
     const doc = guildConfigDoc ? guildConfigDoc.toObject() : {}
 
     return {
+        locale: doc.locale ?? DEFAULT_GUILD_CONFIG.locale,
         welcome: {...DEFAULT_GUILD_CONFIG.welcome, ...doc.welcome},
         farewell: {...DEFAULT_GUILD_CONFIG.farewell, ...doc.farewell},
         moderation: {...DEFAULT_GUILD_CONFIG.moderation, ...doc.moderation},
@@ -49,6 +51,40 @@ async function updateGuildConfig(guildId, partialUpdate) {
     }
 }
 
+async function getGuildLocale(guild) {
+    try {
+        const guildConfigDoc = await guildConfigModel.findOne({guildId: guild.id})
+        if (guildConfigDoc?.locale) return guildConfigDoc.locale
+
+        const detected = mapDiscordLocale(guild.preferredLocale)
+        await guildConfigModel.findOneAndUpdate(
+            {guildId: guild.id},
+            {$set: {locale: detected}},
+            {upsert: true, setDefaultsOnInsert: true}
+        )
+
+        return detected
+    } catch (error) {
+        logger.error('Error al obtener el idioma del guild:', error)
+        throw error
+    }
+}
+
+async function setGuildLocale(guildId, locale) {
+    try {
+        const guildConfigDoc = await guildConfigModel.findOneAndUpdate(
+            {guildId},
+            {$set: {locale}},
+            {upsert: true, new: true, setDefaultsOnInsert: true}
+        )
+
+        return mergeWithDefaults(guildConfigDoc)
+    } catch (error) {
+        logger.error('Error al configurar el idioma del guild:', error)
+        throw error
+    }
+}
+
 async function addLevelRole(guildId, level, roleId) {
     try {
         await guildConfigModel.updateOne(
@@ -70,4 +106,4 @@ async function addLevelRole(guildId, level, roleId) {
     }
 }
 
-module.exports = {getGuildConfig, updateGuildConfig, addLevelRole}
+module.exports = {getGuildConfig, updateGuildConfig, addLevelRole, getGuildLocale, setGuildLocale}

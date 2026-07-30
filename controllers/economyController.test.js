@@ -27,7 +27,7 @@ describe('economyController', () => {
         it('throws when the user is not registered', async () => {
             guildUserModel.findOne.mockResolvedValue(null);
 
-            await expect(addCurrency('g1', 'u1', 50)).rejects.toThrow('El usuario no está registrado.');
+            await expect(addCurrency('g1', 'u1', 50)).rejects.toThrow('NOT_REGISTERED');
         });
     });
 
@@ -44,7 +44,7 @@ describe('economyController', () => {
         it('throws when balance is insufficient', async () => {
             guildUserModel.findOne.mockResolvedValue({currency: 10, save: jest.fn()});
 
-            await expect(subtractCurrency('g1', 'u1', 50)).rejects.toThrow('Saldo insuficiente.');
+            await expect(subtractCurrency('g1', 'u1', 50)).rejects.toThrow('INSUFFICIENT_FUNDS');
         });
     });
 

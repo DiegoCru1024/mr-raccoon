@@ -1,5 +1,6 @@
 const {SlashCommandBuilder, EmbedBuilder} = require('discord.js');
 const {guildUserModel} = require("../models/guildUserSchema");
+const {t} = require('../utils/i18n');
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -13,18 +14,18 @@ module.exports = {
             });
 
             if (!guildUserData) {
-                return interaction.reply('Todavía no estás registrado. Usa algún comando de economía primero.');
+                return interaction.reply(t(interaction.appLocale, 'wallet.notRegistered'));
             }
 
             const walletEmbed = new EmbedBuilder()
                 .setColor(0x6400c8)
-                .setTitle(`Billetera de ${interaction.user.username}`)
-                .setDescription(`Tienes ${guildUserData.currency} Cosmic Coins :raccoon:`)
+                .setTitle(t(interaction.appLocale, 'wallet.title', {username: interaction.user.username}))
+                .setDescription(t(interaction.appLocale, 'wallet.description', {currency: guildUserData.currency}))
                 .setThumbnail(interaction.user.avatarURL())
             return interaction.reply({embeds: [walletEmbed]})
         } catch (error) {
             console.error('Error al procesar el comando "wallet":', error);
-            return interaction.reply('Ocurrió un error al procesar el comando.');
+            return interaction.reply(t(interaction.appLocale, 'common.genericError'));
         }
     },
 };

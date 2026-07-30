@@ -1,4 +1,5 @@
 const {SlashCommandBuilder, EmbedBuilder} = require('discord.js');
+const {t} = require('../utils/i18n');
 
 const NUMBER_EMOJIS = ['1️⃣', '2️⃣', '3️⃣', '4️⃣', '5️⃣'];
 
@@ -23,7 +24,7 @@ module.exports = {
                 .setColor(0x6400c8)
                 .setTitle(pregunta)
                 .setDescription(opciones.map((opcion, index) => `${NUMBER_EMOJIS[index]} ${opcion}`).join('\n'))
-                .setFooter({text: `Encuesta creada por ${interaction.user.username}`});
+                .setFooter({text: t(interaction.appLocale, 'poll.createdBy', {username: interaction.user.username})});
 
             await interaction.reply({embeds: [pollEmbed]});
             const pollMessage = await interaction.fetchReply();
@@ -33,7 +34,7 @@ module.exports = {
             }
         } catch (error) {
             console.error('Error al procesar el comando "poll":', error);
-            return interaction.reply('Ocurrió un error al procesar el comando.');
+            return interaction.reply(t(interaction.appLocale, 'common.genericError'));
         }
     },
 };

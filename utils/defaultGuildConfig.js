@@ -1,4 +1,5 @@
 const DEFAULT_GUILD_CONFIG = {
+    locale: null,
     welcome: {
         enabled: false,
         channelId: null,

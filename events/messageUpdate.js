@@ -1,5 +1,6 @@
 const {Events, EmbedBuilder} = require('discord.js')
 const {getGuildConfig} = require("../controllers/configController")
+const {t} = require('../utils/i18n')
 const logger = require("../utils/logger")
 
 module.exports = {
@@ -17,12 +18,12 @@ module.exports = {
 
             const logEmbed = new EmbedBuilder()
                 .setColor(0xc86400)
-                .setTitle('Mensaje editado')
+                .setTitle(t(config.locale, 'messageLog.editedTitle'))
                 .addFields(
-                    {name: 'Autor', value: `<@${newMessage.author.id}>`, inline: true},
-                    {name: 'Canal', value: `${newMessage.channel}`, inline: true},
-                    {name: 'Antes', value: oldMessage.content || '*Sin contenido de texto*'},
-                    {name: 'Después', value: newMessage.content || '*Sin contenido de texto*'}
+                    {name: t(config.locale, 'messageLog.author'), value: `<@${newMessage.author.id}>`, inline: true},
+                    {name: t(config.locale, 'messageLog.channel'), value: `${newMessage.channel}`, inline: true},
+                    {name: t(config.locale, 'messageLog.before'), value: oldMessage.content || t(config.locale, 'common.noTextContent')},
+                    {name: t(config.locale, 'messageLog.after'), value: newMessage.content || t(config.locale, 'common.noTextContent')}
                 )
                 .setTimestamp()
 

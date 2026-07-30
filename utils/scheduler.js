@@ -1,4 +1,6 @@
 const {getDueReminders, deleteReminder} = require('../controllers/reminderController')
+const {getGuildConfig} = require('../controllers/configController')
+const {t} = require('./i18n')
 const logger = require('./logger')
 
 const CHECK_INTERVAL = 30 * 1000
@@ -21,7 +23,8 @@ function startReminderScheduler(client) {
 async function dispatchReminder(client, reminder) {
     try {
         const channel = await client.channels.fetch(reminder.channelId).catch(() => null)
-        const content = `⏰ <@${reminder.userId}>, recordatorio: ${reminder.message}`
+        const config = await getGuildConfig(reminder.guildId)
+        const content = t(config.locale, 'remind.deliveryContent', {user: `<@${reminder.userId}>`, message: reminder.message})
 
         if (channel) {
             await channel.send(content)

@@ -1,6 +1,7 @@
 const {SlashCommandBuilder, PermissionFlagsBits, EmbedBuilder, ChannelType} = require('discord.js');
-const {getGuildConfig, updateGuildConfig, addLevelRole} = require('../controllers/configController');
+const {getGuildConfig, updateGuildConfig, addLevelRole, setGuildLocale} = require('../controllers/configController');
 const {addItem, removeItem} = require('../controllers/shopController');
+const {t} = require('../utils/i18n');
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -32,6 +33,16 @@ module.exports = {
             .setName('view')
             .setDescription('Muestra la configuración actual del servidor.'))
         .addSubcommand(subcommand => subcommand
+            .setName('language')
+            .setDescription('Configura el idioma del bot para este servidor.')
+            .addStringOption(option => option.setName('idioma')
+                .setDescription('Idioma a utilizar')
+                .setRequired(true)
+                .addChoices(
+                    {name: 'English', value: 'en'},
+                    {name: 'Español', value: 'es'}
+                )))
+        .addSubcommand(subcommand => subcommand
             .setName('shop-add')
             .setDescription('Agrega un artículo a la tienda del servidor.')
             .addStringOption(option => option.setName('nombre').setDescription('Nombre del artículo').setRequired(true))
@@ -53,7 +64,8 @@ module.exports = {
                 const activo = interaction.options.getBoolean('activo');
 
                 await updateGuildConfig(guildId, {welcome: {enabled: activo, channelId: canal.id, message: mensaje}});
-                return interaction.reply(`Bienvenida ${activo ? 'activada' : 'desactivada'} en ${canal}.`);
+                const welcomeStatus = t(interaction.appLocale, activo ? 'config.enabled' : 'config.disabled');
+                return interaction.reply(t(interaction.appLocale, 'config.welcomeUpdated', {status: welcomeStatus, channel: `${canal}`}));
             }
 
             if (subcommand === 'farewell') {
@@ -62,14 +74,15 @@ module.exports = {
                 const activo = interaction.options.getBoolean('activo');
 
                 await updateGuildConfig(guildId, {farewell: {enabled: activo, channelId: canal.id, message: mensaje}});
-                return interaction.reply(`Despedida ${activo ? 'activada' : 'desactivada'} en ${canal}.`);
+                const farewellStatus = t(interaction.appLocale, activo ? 'config.enabled' : 'config.disabled');
+                return interaction.reply(t(interaction.appLocale, 'config.farewellUpdated', {status: farewellStatus, channel: `${canal}`}));
             }
 
             if (subcommand === 'logs') {
                 const canal = interaction.options.getChannel('canal');
 
                 await updateGuildConfig(guildId, {moderation: {logChannelId: canal.id}});
-                return interaction.reply(`Canal de logs de moderación configurado en ${canal}.`);
+                return interaction.reply(t(interaction.appLocale, 'config.logsUpdated', {channel: `${canal}`}));
             }
 
             if (subcommand === 'levelrole') {
@@ -77,20 +90,31 @@ module.exports = {
                 const rol = interaction.options.getRole('rol');
 
                 await addLevelRole(guildId, nivel, rol.id);
-                return interaction.reply(`El rol ${rol} se otorgará al alcanzar el nivel ${nivel}.`);
+                return interaction.reply(t(interaction.appLocale, 'config.levelRoleUpdated', {role: `${rol}`, level: nivel}));
+            }
+
+            if (subcommand === 'language') {
+                const idioma = interaction.options.getString('idioma');
+
+                await setGuildLocale(guildId, idioma);
+                const languageName = t(idioma, `config.languageNames.${idioma}`);
+                return interaction.reply(t(idioma, 'config.languageUpdated', {language: languageName}));
             }
 
             if (subcommand === 'view') {
                 const config = await getGuildConfig(guildId);
+                const locale = interaction.appLocale;
+                const none = t(locale, 'common.none');
 
                 const configEmbed = new EmbedBuilder()
                     .setColor(0x6400c8)
-                    .setTitle(`Configuración de ${interaction.guild.name}`)
+                    .setTitle(t(locale, 'config.viewTitle', {guild: interaction.guild.name}))
                     .addFields(
-                        {name: 'Bienvenida', value: `Activo: ${config.welcome.enabled}\nCanal: ${config.welcome.channelId ? `<#${config.welcome.channelId}>` : 'Ninguno'}\nMensaje: ${config.welcome.message}`},
-                        {name: 'Despedida', value: `Activo: ${config.farewell.enabled}\nCanal: ${config.farewell.channelId ? `<#${config.farewell.channelId}>` : 'Ninguno'}\nMensaje: ${config.farewell.message}`},
-                        {name: 'Moderación', value: `Canal de logs: ${config.moderation.logChannelId ? `<#${config.moderation.logChannelId}>` : 'Ninguno'}`},
-                        {name: 'Niveles', value: `Anuncios: ${config.leveling.announceLevelUp}\nRoles por nivel: ${config.leveling.levelRoles.length ? config.leveling.levelRoles.map(levelRole => `Nivel ${levelRole.level} → <@&${levelRole.roleId}>`).join('\n') : 'Ninguno'}`}
+                        {name: t(locale, 'config.viewWelcome'), value: `${t(locale, 'config.active')}: ${config.welcome.enabled}\n${t(locale, 'config.channel')}: ${config.welcome.channelId ? `<#${config.welcome.channelId}>` : none}\n${t(locale, 'config.message')}: ${config.welcome.message}`},
+                        {name: t(locale, 'config.viewFarewell'), value: `${t(locale, 'config.active')}: ${config.farewell.enabled}\n${t(locale, 'config.channel')}: ${config.farewell.channelId ? `<#${config.farewell.channelId}>` : none}\n${t(locale, 'config.message')}: ${config.farewell.message}`},
+                        {name: t(locale, 'config.viewModeration'), value: `${t(locale, 'config.logChannel')}: ${config.moderation.logChannelId ? `<#${config.moderation.logChannelId}>` : none}`},
+                        {name: t(locale, 'config.viewLeveling'), value: `${t(locale, 'config.announcements')}: ${config.leveling.announceLevelUp}\n${t(locale, 'config.levelRoles')}: ${config.leveling.levelRoles.length ? config.leveling.levelRoles.map(levelRole => `${t(locale, 'rank.level')} ${levelRole.level} → <@&${levelRole.roleId}>`).join('\n') : none}`},
+                        {name: t(locale, 'config.viewLanguage'), value: t(locale, `config.languageNames.${locale}`)}
                     );
 
                 return interaction.reply({embeds: [configEmbed]});
@@ -103,18 +127,22 @@ module.exports = {
                 const descripcion = interaction.options.getString('descripcion');
 
                 const item = await addItem(guildId, nombre, descripcion, precio, rol.id);
-                return interaction.reply(`Artículo **${item.name}** agregado a la tienda (ID: \`${item._id}\`).`);
+                return interaction.reply(t(interaction.appLocale, 'config.itemAdded', {name: item.name, id: item._id}));
             }
 
             if (subcommand === 'shop-remove') {
                 const itemId = interaction.options.getString('id');
 
                 const item = await removeItem(guildId, itemId);
-                return interaction.reply(`Artículo **${item.name}** eliminado de la tienda.`);
+                return interaction.reply(t(interaction.appLocale, 'config.itemRemoved', {name: item.name}));
             }
         } catch (error) {
+            if (error.message === 'ITEM_NOT_FOUND') {
+                return interaction.reply(t(interaction.appLocale, 'buy.itemNotFound'));
+            }
+
             console.error('Error al procesar el comando "config":', error);
-            return interaction.reply('Ocurrió un error al procesar el comando.');
+            return interaction.reply(t(interaction.appLocale, 'common.genericError'));
         }
     },
 };

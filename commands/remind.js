@@ -1,5 +1,6 @@
 const {SlashCommandBuilder} = require('discord.js');
 const {createReminder} = require('../controllers/reminderController');
+const {t} = require('../utils/i18n');
 
 const DURATION_UNITS = {m: 60 * 1000, h: 60 * 60 * 1000, d: 24 * 60 * 60 * 1000};
 
@@ -24,16 +25,16 @@ module.exports = {
             const durationMs = parseDuration(tiempo);
 
             if (!durationMs) {
-                return interaction.reply('Formato de tiempo inválido. Usa algo como `10m`, `2h` o `1d`.');
+                return interaction.reply(t(interaction.appLocale, 'remind.invalidFormat'));
             }
 
             const remindAt = new Date(Date.now() + durationMs);
             await createReminder(interaction.user.id, interaction.guild.id, interaction.channel.id, mensaje, remindAt);
 
-            return interaction.reply(`Te recordaré "${mensaje}" el <t:${Math.floor(remindAt.getTime() / 1000)}:F>.`);
+            return interaction.reply(t(interaction.appLocale, 'remind.confirmation', {message: mensaje, timestamp: Math.floor(remindAt.getTime() / 1000)}));
         } catch (error) {
             console.error('Error al procesar el comando "remind":', error);
-            return interaction.reply('Ocurrió un error al procesar el comando.');
+            return interaction.reply(t(interaction.appLocale, 'common.genericError'));
         }
     },
 };

@@ -24,7 +24,7 @@ async function removeItem(guildId, itemId) {
     try {
         const deleted = await shopItemModel.findOneAndDelete({_id: itemId, guildId})
         if (!deleted) {
-            throw new Error('El artículo no existe en la tienda de este servidor.')
+            throw new Error('ITEM_NOT_FOUND')
         }
         return deleted
     } catch (error) {
@@ -37,11 +37,11 @@ async function buyItem(guildId, userId, itemId, member) {
     try {
         const item = await shopItemModel.findOne({_id: itemId, guildId})
         if (!item) {
-            throw new Error('El artículo no existe en la tienda de este servidor.')
+            throw new Error('ITEM_NOT_FOUND')
         }
 
         if (member.roles.cache.has(item.roleId)) {
-            throw new Error('Ya tienes ese artículo.')
+            throw new Error('ALREADY_OWNED')
         }
 
         await subtractCurrency(guildId, userId, item.price)

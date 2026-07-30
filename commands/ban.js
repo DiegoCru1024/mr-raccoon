@@ -1,5 +1,6 @@
 const {SlashCommandBuilder, PermissionFlagsBits} = require('discord.js');
 const {createCase} = require('../controllers/moderationController');
+const {t} = require('../utils/i18n');
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -15,16 +16,16 @@ module.exports = {
             const targetMember = await interaction.guild.members.fetch(targetUser.id).catch(() => null);
 
             if (targetMember && !targetMember.bannable) {
-                return interaction.reply('No tengo permisos para banear a ese usuario.');
+                return interaction.reply(t(interaction.appLocale, 'ban.notBannable'));
             }
 
             await interaction.guild.members.ban(targetUser.id, {reason});
             await createCase(interaction.client, interaction.guild.id, targetUser.id, interaction.user.id, 'ban', reason);
 
-            return interaction.reply(`${targetUser} ha sido baneado. Razón: ${reason}`);
+            return interaction.reply(t(interaction.appLocale, 'ban.success', {user: `${targetUser}`, reason}));
         } catch (error) {
             console.error('Error al procesar el comando "ban":', error);
-            return interaction.reply('Ocurrió un error al procesar el comando.');
+            return interaction.reply(t(interaction.appLocale, 'common.genericError'));
         }
     },
 };

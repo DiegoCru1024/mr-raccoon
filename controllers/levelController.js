@@ -1,4 +1,5 @@
 const {getGuildConfig} = require("./configController")
+const {t} = require('../utils/i18n')
 const logger = require("../utils/logger")
 
 function getLevelFromExperience(experience) {
@@ -35,7 +36,8 @@ async function handleLevelUp({client, guildId, userId, previousExperience, newEx
                 : fallbackChannel
 
             if (targetChannel) {
-                await targetChannel.send(`🎉 <@${userId}> subió al nivel **${newLevel}**!`).catch(error => logger.warn(`No se pudo anunciar la subida de nivel: ${error.message}`))
+                const content = t(config.locale, 'levelUp.announcement', {user: `<@${userId}>`, level: newLevel})
+                await targetChannel.send(content).catch(error => logger.warn(`No se pudo anunciar la subida de nivel: ${error.message}`))
             }
         }
     } catch (error) {

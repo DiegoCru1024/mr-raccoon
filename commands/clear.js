@@ -1,4 +1,5 @@
 const {SlashCommandBuilder, PermissionFlagsBits} = require('discord.js');
+const {t} = require('../utils/i18n');
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -11,14 +12,14 @@ module.exports = {
         const canal = interaction.channel
 
         await canal.bulkDelete(cantidad).then(messages => {
-            interaction.reply(`Se eliminaron ${messages.size} mensajes.`)
+            interaction.reply(t(interaction.appLocale, 'clear.success', {count: messages.size}))
         }).catch((error) => {
             if (error.rawError.code === 50034) {
-                interaction.reply('Solo pueden borrarse mensajes con menos de 14 días de antigüedad.')
+                interaction.reply(t(interaction.appLocale, 'clear.tooOld'))
                 return
             }
 
-            interaction.reply('Ha ocurrido un error al borrar los mensajes.')
+            interaction.reply(t(interaction.appLocale, 'clear.error'))
         })
     },
 };

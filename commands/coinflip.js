@@ -1,5 +1,6 @@
 const {SlashCommandBuilder} = require('discord.js');
 const {addCurrency, subtractCurrency} = require("../controllers/economyController");
+const {t} = require('../utils/i18n');
 
 const EDGE_PROBABILITY = 0.001;
 const EDGE_PAYOUT_RATIO = 10;
@@ -25,26 +26,30 @@ module.exports = {
             if (Math.random() < EDGE_PROBABILITY) {
                 const winnings = Math.floor(apuesta * EDGE_PAYOUT_RATIO);
                 await addCurrency(interaction.guild.id, interaction.user.id, winnings);
-                return interaction.reply(`¡La moneda cayó de canto! 🪙 Un resultado extremadamente raro. ¡Ganaste ${winnings} Cosmic Coins!`);
+                return interaction.reply(t(interaction.appLocale, 'coinflip.edge', {amount: winnings}));
             }
 
             const resultado = Math.random() < 0.5 ? 'cara' : 'cruz';
+            const resultadoLabel = t(interaction.appLocale, resultado === 'cara' ? 'coinflip.heads' : 'coinflip.tails');
 
             if (resultado === lado) {
                 const winnings = Math.floor(apuesta * WIN_PAYOUT_RATIO);
                 await addCurrency(interaction.guild.id, interaction.user.id, winnings);
-                return interaction.reply(`La moneda cayó en **${resultado}**. ¡Ganaste ${winnings} Cosmic Coins!`);
+                return interaction.reply(t(interaction.appLocale, 'coinflip.win', {result: resultadoLabel, amount: winnings}));
             }
 
             await subtractCurrency(interaction.guild.id, interaction.user.id, apuesta);
-            return interaction.reply(`La moneda cayó en **${resultado}**. Perdiste ${apuesta} Cosmic Coins.`);
+            return interaction.reply(t(interaction.appLocale, 'coinflip.lose', {result: resultadoLabel, amount: apuesta}));
         } catch (error) {
-            if (error.message === 'Saldo insuficiente.' || error.message === 'El usuario no está registrado.') {
-                return interaction.reply(error.message);
+            if (error.message === 'INSUFFICIENT_FUNDS') {
+                return interaction.reply(t(interaction.appLocale, 'common.insufficientFunds'));
+            }
+            if (error.message === 'NOT_REGISTERED') {
+                return interaction.reply(t(interaction.appLocale, 'common.notRegistered'));
             }
 
             console.error('Error al procesar el comando "coinflip":', error);
-            return interaction.reply('Ocurrió un error al procesar el comando.');
+            return interaction.reply(t(interaction.appLocale, 'common.genericError'));
         }
     },
 };

@@ -1,5 +1,6 @@
 const {SlashCommandBuilder} = require('discord.js');
 const {transferCurrency} = require("../controllers/economyController");
+const {t} = require('../utils/i18n');
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -13,23 +14,26 @@ module.exports = {
             const amount = interaction.options.getInteger('cantidad');
 
             if (targetUser.id === interaction.user.id) {
-                return interaction.reply('No puedes transferirte monedas a ti mismo.');
+                return interaction.reply(t(interaction.appLocale, 'pay.selfTransfer'));
             }
 
             if (targetUser.bot) {
-                return interaction.reply('No puedes transferirle monedas a un bot.');
+                return interaction.reply(t(interaction.appLocale, 'pay.botTransfer'));
             }
 
             await transferCurrency(interaction.guild.id, interaction.user.id, targetUser.id, amount);
 
-            return interaction.reply(`Transferiste ${amount} Cosmic Coins a ${targetUser}.`);
+            return interaction.reply(t(interaction.appLocale, 'pay.success', {amount, user: `${targetUser}`}));
         } catch (error) {
-            if (error.message === 'Saldo insuficiente.' || error.message === 'El usuario no está registrado.') {
-                return interaction.reply(error.message);
+            if (error.message === 'INSUFFICIENT_FUNDS') {
+                return interaction.reply(t(interaction.appLocale, 'common.insufficientFunds'));
+            }
+            if (error.message === 'NOT_REGISTERED') {
+                return interaction.reply(t(interaction.appLocale, 'common.notRegistered'));
             }
 
             console.error('Error al procesar el comando "pay":', error);
-            return interaction.reply('Ocurrió un error al procesar el comando.');
+            return interaction.reply(t(interaction.appLocale, 'common.genericError'));
         }
     },
 };
